@@ -1,0 +1,1979 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky Jumper</title>
+  <style>
+    :root {
+      --ui-bg: rgba(10, 27, 58, 0.7);
+      --ui-border: rgba(255, 255, 255, 0.45);
+      --sky-top: #69b9ff;
+      --sky-bottom: #d9f2ff;
+      --text: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 15%, #ffffff66 0 4%, transparent 5%),
+        radial-gradient(circle at 72% 23%, #ffffff4d 0 5%, transparent 6%),
+        linear-gradient(180deg, #8dd0ff 0%, #cceeff 45%, #e9f8ff 100%);
+      color: var(--text);
+    }
+
+    .game-shell {
+      width: min(95vw, 520px);
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: 0.06em;
+      color: #113a64;
+      text-shadow: 0 2px 0 #ffffff;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      border: 4px solid #173955;
+      border-radius: 12px;
+      box-shadow: 0 10px 28px rgba(13, 45, 72, 0.35);
+      overflow: hidden;
+      background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .hud {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-weight: 700;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+    }
+
+    .canvas-controls {
+      position: absolute;
+      top: 54px;
+      right: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      z-index: 7;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--ui-bg);
+      border: 1px solid var(--ui-border);
+      backdrop-filter: blur(2px);
+      font-size: 0.95rem;
+    }
+
+    .chip-btn {
+      pointer-events: auto;
+      border: 1px solid #b7d9ff;
+      background: rgba(16, 51, 84, 0.88);
+      color: #fff;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 86px;
+    }
+
+    .chip-btn.hidden {
+      display: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .life-chip {
+      position: absolute;
+      left: 8px;
+      top: 52px;
+      z-index: 7;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .heart-icons {
+      color: #ff4b5d;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 6px rgba(255, 32, 50, 0.3);
+    }
+
+    .help {
+      margin: 0;
+      color: #133f68;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .menu-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: none;
+      padding: 30px 24px 26px;
+      background:
+        radial-gradient(circle at 18% 16%, #ffffffb3 0 10%, transparent 11%),
+        radial-gradient(circle at 78% 24%, #ffffff80 0 12%, transparent 13%),
+        linear-gradient(180deg, #79c7ff 0%, #c8ecff 52%, #eaf9ff 100%);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .menu-overlay.show {
+      display: flex;
+    }
+
+    .menu-panel {
+      width: min(92%, 420px);
+      text-align: center;
+      color: #0f3b68;
+    }
+
+    .menu-title {
+      margin: 0 0 18px;
+      font-size: clamp(1.9rem, 6vw, 2.55rem);
+      letter-spacing: 0.08em;
+      color: #11426f;
+      text-shadow: 0 3px 0 #f2fcff;
+    }
+
+    .menu-subtitle {
+      margin: 0 0 22px;
+      font-weight: 700;
+      font-size: 0.96rem;
+      color: #2a5d8b;
+    }
+
+    .menu-back {
+      border: 2px solid #cde8ff;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 34%, #ffffff 0 31%, #f4fbff 70%, #e8f4ff 100%);
+      color: #1a4f7f;
+      font-size: 1.15rem;
+      font-weight: 900;
+      line-height: 1;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow:
+        0 5px 0 #a5d2f3,
+        0 10px 18px rgba(10, 64, 102, 0.2);
+    }
+
+    .hell-header {
+      position: relative;
+      min-height: 48px;
+      margin-bottom: 16px;
+    }
+
+    .hell-title {
+      margin: 0;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      letter-spacing: 0.07em;
+      color: #11426f;
+      text-shadow: 0 3px 0 #f2fcff;
+      text-align: center;
+      width: 100%;
+      line-height: 48px;
+    }
+
+    .hell-level-path {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 2px 0 6px;
+    }
+
+    .hell-header .menu-back {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .hell-level-path .cloud-btn {
+      width: min(182px, 74%);
+      padding: 12px 10px;
+      font-size: 0.84rem;
+      min-height: 52px;
+      white-space: nowrap;
+    }
+
+    .hell-level-btn.step-1 { margin-left: 2%; }
+    .hell-level-btn.step-2 { margin-left: 28%; }
+    .hell-level-btn.step-3 { margin-left: 54%; }
+    .hell-level-btn.step-4 { margin-left: 30%; }
+    .hell-level-btn.step-5 { margin-left: 6%; }
+    .hell-level-btn.step-6 { margin-left: 29%; }
+    .hell-level-btn.step-7 { margin-left: 53%; }
+    .hell-level-btn.step-8 { margin-left: 28%; }
+    .hell-level-btn.step-9 { margin-left: 4%; }
+    .hell-level-btn.step-10 { margin-left: 34%; }
+
+    .cloud-btn.locked-level {
+      opacity: 0.58;
+      filter: grayscale(0.95);
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .mode-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .cloud-btn {
+      border: 2px solid #cde8ff;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 34%, #ffffff 0 31%, #f4fbff 70%, #e8f4ff 100%);
+      color: #1a4f7f;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      padding: 16px 20px;
+      cursor: pointer;
+      box-shadow:
+        0 7px 0 #a5d2f3,
+        0 12px 22px rgba(10, 64, 102, 0.2);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .cloud-btn:hover,
+    .cloud-btn:focus-visible {
+      transform: translateY(-2px);
+      box-shadow:
+        0 9px 0 #a5d2f3,
+        0 15px 24px rgba(10, 64, 102, 0.24);
+      outline: none;
+    }
+
+    .cloud-btn:active {
+      transform: translateY(3px);
+      box-shadow:
+        0 4px 0 #a5d2f3,
+        0 8px 14px rgba(10, 64, 102, 0.22);
+    }
+
+  </style>
+</head>
+<body>
+  <main class="game-shell">
+    <h1 class="title">SKY_JUMPER</h1>
+    <div class="canvas-wrap">
+      <div class="hud">
+        <div class="chip" id="scoreLabel">Score: 0</div>
+        <div class="chip" id="goldLabel">Gold: 0</div>
+        <div class="chip" id="stateLabel">Select Mode</div>
+      </div>
+      <div class="canvas-controls">
+        <div class="chip" id="modeLabel">Mode: -</div>
+        <button class="chip-btn hidden" id="menuBtn" type="button">MENU</button>
+      </div>
+      <div class="chip life-chip hidden" id="lifeLabel">Lives: <span class="heart-icons">❤❤❤</span></div>
+      <div class="menu-overlay show" id="mainMenu">
+        <div class="menu-panel">
+          <h2 class="menu-title">SKY_JUMPER</h2>
+          <p class="menu-subtitle">Choose a mode to start climbing</p>
+          <div class="mode-list">
+            <button class="cloud-btn" type="button" data-mode="NORMAL">NORMAL</button>
+            <button class="cloud-btn" type="button" data-mode="HARD">HARD</button>
+            <button class="cloud-btn" type="button" data-mode="HELL DIFFICULTY">HELL DIFFICULTY</button>
+          </div>
+        </div>
+      </div>
+      <div class="menu-overlay" id="hellMenu">
+        <div class="menu-panel">
+          <div class="hell-header">
+            <button class="menu-back" id="hellBackBtn" type="button" aria-label="Back to main menu">←</button>
+            <h2 class="hell-title">HELL LEVELS</h2>
+          </div>
+          <div class="hell-level-path">
+            <button class="cloud-btn hell-level-btn step-1" type="button" data-hell-level="1">LEVEL 1</button>
+            <button class="cloud-btn hell-level-btn step-2" type="button" data-hell-level="2">LEVEL 2</button>
+            <button class="cloud-btn hell-level-btn step-3" type="button" data-hell-level="3">LEVEL 3</button>
+            <button class="cloud-btn hell-level-btn step-4" type="button" data-hell-level="4">LEVEL 4</button>
+            <button class="cloud-btn hell-level-btn step-5" type="button" data-hell-level="5">LEVEL 5</button>
+            <button class="cloud-btn hell-level-btn step-6" type="button" data-hell-level="6">LEVEL 6</button>
+            <button class="cloud-btn hell-level-btn step-7" type="button" data-hell-level="7">LEVEL 7</button>
+            <button class="cloud-btn hell-level-btn step-8" type="button" data-hell-level="8">LEVEL 8</button>
+            <button class="cloud-btn hell-level-btn step-9" type="button" data-hell-level="9">LEVEL 9</button>
+            <button class="cloud-btn hell-level-btn step-10" type="button" data-hell-level="10">LEVEL 10</button>
+          </div>
+        </div>
+      </div>
+      <canvas id="game" width="480" height="720" aria-label="Sky Jumper game canvas"></canvas>
+    </div>
+    <p class="help">Move: A/D or Arrow Keys | Jump: Space | Restart: R | Return Menu: M</p>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const scoreLabel = document.getElementById('scoreLabel');
+      const goldLabel = document.getElementById('goldLabel');
+      const stateLabel = document.getElementById('stateLabel');
+      const mainMenu = document.getElementById('mainMenu');
+      const hellMenu = document.getElementById('hellMenu');
+      const hellBackBtn = document.getElementById('hellBackBtn');
+      const modeButtons = mainMenu.querySelectorAll('[data-mode]');
+      const hellLevelButtons = hellMenu.querySelectorAll('[data-hell-level]');
+      const modeLabel = document.getElementById('modeLabel');
+      const menuBtn = document.getElementById('menuBtn');
+      const lifeLabel = document.getElementById('lifeLabel');
+
+      const W = canvas.width;
+      const H = canvas.height;
+      const HALF_H = H / 2;
+
+      const keys = {
+        left: false,
+        right: false
+      };
+
+      const physics = {
+        gravity: 0.42,
+        moveSpeed: 3.05,
+        jumpPower: 10.8,
+        maxFall: 14,
+        airDrag: 0.9,
+        groundDrag: 0.72,
+        landingGrip: 0.58
+      };
+
+      const player = {
+        x: W / 2 - 14,
+        y: H - 120,
+        w: 28,
+        h: 28,
+        vx: 0,
+        vy: 0,
+        onGround: false,
+        facing: 1
+      };
+
+      const clouds = [];
+      const cloudCount = 7;
+
+      const rocks = [];
+      const minLayerGap = 64;
+      const maxLayerGap = 88;
+      const layerRockMin = 2;
+      const layerRockMax = 3;
+      const maxRowBlocks = 3;
+      const maxJumpReachX = 150;
+      const minRockSeparation = 26;
+      const minPathOffsetX = 46;
+      const nearbyRowVerticalWindow = 96;
+      const minNearbyRowOffsetX = 52;
+      const headClearanceX = 44;
+      const rockMinWidth = 66;
+      const rockMaxWidth = 112;
+      const breakChance = 0.32;
+      const breakDelayMs = 500;
+      const brokenDurationMs = 3000;
+      const supportOverlapMin = 2;
+      const minCoinsPerScreen = 2;
+      const maxCoinsPerScreen = 3;
+      const winScoreTarget = 100;
+      const hardRainRanges = [
+        { start: 10, end: 20 },
+        { start: 30, end: 40 },
+        { start: 50, end: 60 },
+        { start: 65, end: 75 },
+        { start: 80, end: 90 },
+        { start: 90, end: 100 }
+      ];
+      const hardCountdownStart = 3;
+      const hardMaxLives = 3;
+      const hardBombLaneCount = 9;
+      const hardBombLaneHistorySize = 6;
+      const maxHealthCoinsPerRun = 2;
+      const healthCoinSpawnChance = 0.05;
+      const maxVisibleHealthCoins = 1;
+
+      let topLayerY = H - 70;
+      let topLayerRocks = [];
+      let mainPathAnchor = null;
+      let playerGold = 0;
+      let healthCoinsSpawnedThisRun = 0;
+
+      let gameOver = false;
+      let gameWon = false;
+      let worldClimb = 0;
+      let score = 0;
+      let nextRockId = 1;
+      let lastLandedRockId = null;
+      const landedRockIds = new Set();
+      const bombs = [];
+      let hardLives = 0;
+      let hardCountdownActive = false;
+      let hardCountdownValue = 0;
+      let hardCountdownNextAt = 0;
+      let hardBombInvulnerableUntil = 0;
+      let hardRainRangeIndex = -1;
+      let nextBombSpawnAt = 0;
+      let hardLastBombLane = -1;
+      const hardRecentBombLanes = [];
+      let hardWaveCounter = 0;
+
+      const screen = {
+        menu: 'menu',
+        playing: 'playing'
+      };
+      const menuPage = {
+        main: 'main',
+        hell: 'hell'
+      };
+      let activeScreen = screen.menu;
+      let activeMenuPage = menuPage.main;
+      let selectedMode = null;
+      let selectedHellLevel = null;
+      let hellUnlockedMaxLevel = 1;
+      const hellProgressStorageKey = 'sky_jumper_hell_unlocked_max_v1';
+      let hellLevelIntroUntil = 0;
+      const hellWallBar = {
+        active: false,
+        x: 0,
+        y: 0,
+        w: 220,
+        h: 28,
+        speed: 18,
+        sourceRockId: null
+      };
+
+      // Future-ready Hell level table: later each entry can point to a handcrafted fixed layout.
+      const hellLevelDefinitions = Array.from({ length: 10 }, (_, i) => ({
+        id: i + 1,
+        name: `LEVEL ${i + 1}`,
+        layoutId: null
+      }));
+
+      const rabbitPalette = { base: '#f4f5f7', accent: '#dcdde2', blush: '#f59cb0', eye: '#1f2937', detail: '#ec6f8f' };
+
+      function rand(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function loadHellProgress() {
+        try {
+          const raw = window.localStorage.getItem(hellProgressStorageKey);
+          const parsed = Number(raw);
+          if (Number.isInteger(parsed)) {
+            hellUnlockedMaxLevel = clamp(parsed, 1, hellLevelDefinitions.length);
+          }
+        } catch (_) {
+          hellUnlockedMaxLevel = 1;
+        }
+      }
+
+      function saveHellProgress() {
+        try {
+          window.localStorage.setItem(hellProgressStorageKey, String(hellUnlockedMaxLevel));
+        } catch (_) {
+          // Ignore storage write failures; runtime unlock still works.
+        }
+      }
+
+      function isHellLevelUnlocked(levelId) {
+        return Number.isInteger(levelId) && levelId >= 1 && levelId <= hellUnlockedMaxLevel;
+      }
+
+      function isHellMode() {
+        return selectedMode === 'HELL DIFFICULTY';
+      }
+
+      function isHellLevelOne() {
+        return isHellMode() && selectedHellLevel === 1;
+      }
+
+      function isHellLevelTwo() {
+        return isHellMode() && selectedHellLevel === 2;
+      }
+
+      function isHandcraftedHellLevel() {
+        return isHellLevelOne() || isHellLevelTwo();
+      }
+
+      function updateHellLevelButtons() {
+        for (const button of hellLevelButtons) {
+          const levelId = Number(button.dataset.hellLevel);
+          const unlocked = isHellLevelUnlocked(levelId);
+          button.disabled = !unlocked;
+          button.classList.toggle('locked-level', !unlocked);
+          button.setAttribute('aria-disabled', String(!unlocked));
+          button.title = unlocked ? '' : 'Locked';
+        }
+      }
+
+      function registerHellLevelClear(levelId) {
+        if (!Number.isInteger(levelId) || levelId < 1 || levelId > hellLevelDefinitions.length) return;
+        const nextUnlocked = Math.min(hellLevelDefinitions.length, levelId + 1);
+        if (nextUnlocked > hellUnlockedMaxLevel) {
+          hellUnlockedMaxLevel = nextUnlocked;
+          saveHellProgress();
+          updateHellLevelButtons();
+        }
+      }
+
+      function completeHellLevelObjective(levelId) {
+        gameWon = true;
+        registerHellLevelClear(levelId);
+        setStatus(`HELL LEVEL ${levelId} CLEAR! Press R or M`);
+      }
+
+      function nextLayerGap() {
+        const layout = getLayoutTuning();
+        return rand(layout.minGap, layout.maxGap);
+      }
+
+      function isHardMode() {
+        return selectedMode === 'HARD';
+      }
+
+      function getLayoutTuning() {
+        if (isHardMode()) {
+          return {
+            minGap: 72,
+            maxGap: 94,
+            rowMin: 2,
+            rowMax: 2,
+            rowMaxBlocks: 2,
+            minSeparation: 46,
+            pathOffset: 58,
+            nearbyOffset: 80,
+            headClearance: 52
+          };
+        }
+        return {
+          minGap: minLayerGap,
+          maxGap: maxLayerGap,
+          rowMin: layerRockMin,
+          rowMax: layerRockMax,
+          rowMaxBlocks: maxRowBlocks,
+          minSeparation: minRockSeparation,
+          pathOffset: minPathOffsetX,
+          nearbyOffset: minNearbyRowOffsetX,
+          headClearance: headClearanceX
+        };
+      }
+
+      function makeCloud(y = rand(-H, H), randomX = true) {
+        return {
+          x: randomX ? rand(10, W - 90) : rand(10, W - 90),
+          y,
+          w: rand(52, 98),
+          h: rand(20, 38),
+          speed: rand(0.05, 0.15)
+        };
+      }
+
+      function makeRock(y, x = null, width = null) {
+        const w = width ?? rand(rockMinWidth, rockMaxWidth);
+        const minX = 12;
+        const maxX = W - w - 12;
+        let rockX = x;
+        if (rockX === null) {
+          rockX = rand(minX, maxX);
+        }
+        rockX = clamp(rockX, minX, maxX);
+
+        const breakable = Math.random() < breakChance;
+        return {
+          id: nextRockId++,
+          x: rockX,
+          y,
+          w,
+          h: 14,
+          breakable,
+          broken: false,
+          respawnAt: 0,
+          collapseAt: 0,
+          hasCoin: false,
+          coinType: null,
+          isPath: false,
+          routeStep: null,
+          goalGold: false,
+          trapType: null,
+          flipTriggered: false,
+          flipStartAt: 0,
+          flipProgress: 0,
+          flipDisabled: false,
+          barTriggered: false,
+          spikesActive: false,
+          spikeStartAt: 0,
+          spikeProgress: 0,
+          spinTriggered: false,
+          spinStartAt: 0,
+          spinProgress: 0,
+          spinDisabled: false
+        };
+      }
+
+      function isNearPlayerHead(x, w, y) {
+        if (y >= player.y - 28 || y <= player.y - 210) return false;
+        const playerCenter = player.x + player.w / 2;
+        const center = x + w / 2;
+        return Math.abs(center - playerCenter) < getLayoutTuning().headClearance;
+      }
+
+      function hasNearbyRowStacking(x, w, y) {
+        const nearbyOffset = getLayoutTuning().nearbyOffset;
+        const center = x + w / 2;
+        for (const r of rocks) {
+          if (Math.abs(r.y - y) > nearbyRowVerticalWindow) continue;
+          const nearCenter = r.x + r.w / 2;
+          if (Math.abs(nearCenter - center) < nearbyOffset) return true;
+        }
+        return false;
+      }
+
+      function overlapsAnyCandidate(candidates, x, w, gap = null) {
+        const requiredGap = gap ?? getLayoutTuning().minSeparation;
+        for (const c of candidates) {
+          if (x < c.x + c.w + requiredGap && x + w + requiredGap > c.x) return true;
+        }
+        return false;
+      }
+
+      function isFairPlacement(x, w, y, layerRocks) {
+        if (overlapsAnyCandidate(layerRocks, x, w)) return false;
+        if (hasNearbyRowStacking(x, w, y)) return false;
+        if (isNearPlayerHead(x, w, y)) return false;
+        return true;
+      }
+
+      function chooseReachableX(anchorRocks, w, layerRocks, y, minOffset = null) {
+        const pathOffset = minOffset ?? getLayoutTuning().pathOffset;
+        const minX = 12;
+        const maxX = W - w - 12;
+        const attempts = 40;
+
+        for (let i = 0; i < attempts; i += 1) {
+          const anchor = anchorRocks[Math.floor(rand(0, anchorRocks.length))];
+          const anchorCenter = anchor.x + anchor.w / 2;
+          const side = Math.random() < 0.5 ? -1 : 1;
+          const offset = rand(pathOffset, maxJumpReachX * 0.82) * side;
+          const center = anchorCenter + offset;
+          const x = clamp(center - w / 2, minX, maxX);
+
+          if (isFairPlacement(x, w, y, layerRocks)) return x;
+        }
+
+        // Fallback: scan reachable range for the least crowded valid position.
+        const anchor = anchorRocks[Math.floor(rand(0, anchorRocks.length))];
+        const anchorCenter = anchor.x + anchor.w / 2;
+        const minReachX = clamp(anchorCenter - maxJumpReachX - w / 2, minX, maxX);
+        const maxReachX = clamp(anchorCenter + maxJumpReachX - w / 2, minX, maxX);
+        const scanStart = Math.floor(Math.min(minReachX, maxReachX));
+        const scanEnd = Math.floor(Math.max(minReachX, maxReachX));
+        let bestX = clamp(anchorCenter - w / 2, minX, maxX);
+        let bestScore = -Infinity;
+        for (let x = scanStart; x <= scanEnd; x += 6) {
+          if (isFairPlacement(x, w, y, layerRocks)) return x;
+          if (overlapsAnyCandidate(layerRocks, x, w, 0)) continue;
+
+          const center = x + w / 2;
+          let nearestOffset = 9999;
+          for (const r of rocks) {
+            if (Math.abs(r.y - y) > nearbyRowVerticalWindow) continue;
+            const offset = Math.abs((r.x + r.w / 2) - center);
+            nearestOffset = Math.min(nearestOffset, offset);
+          }
+          const headPenalty = isNearPlayerHead(x, w, y) ? 1000 : 0;
+          const candidateScore = nearestOffset - headPenalty;
+          if (candidateScore > bestScore) {
+            bestScore = candidateScore;
+            bestX = x;
+          }
+        }
+        return bestX;
+      }
+
+      function buildLayer(y, anchorRocks, forceSolid = false) {
+        const layout = getLayoutTuning();
+        const count = Math.min(layout.rowMaxBlocks, Math.floor(rand(layout.rowMin, layout.rowMax + 1)));
+        const layer = [];
+        const primaryWidth = rand(76, 104);
+        const primaryX = chooseReachableX(anchorRocks, primaryWidth, layer, y, layout.pathOffset);
+        const primary = makeRock(y, primaryX, primaryWidth);
+        primary.breakable = false;
+        primary.isPath = true;
+        layer.push(primary);
+
+        for (let i = 1; i < count; i += 1) {
+          const w = rand(rockMinWidth, rockMaxWidth);
+          const helperAnchors = [primary, ...anchorRocks];
+          const x = chooseReachableX(helperAnchors, w, layer, y, layout.pathOffset - 12);
+          const rock = makeRock(y, x, w);
+          if (forceSolid) rock.breakable = false;
+          layer.push(rock);
+        }
+
+        return { layer, primary };
+      }
+
+      function addNextLayer(anchorRocks, forceSolid = false) {
+        const gap = nextLayerGap();
+        const y = topLayerY - gap;
+        const built = buildLayer(y, anchorRocks, forceSolid);
+        rocks.push(...built.layer);
+        topLayerY = y;
+        topLayerRocks = built.layer;
+        mainPathAnchor = built.primary;
+      }
+
+      function seedWorld() {
+        if (isHellLevelOne()) {
+          seedHellLevelOne();
+          return;
+        }
+        if (isHellLevelTwo()) {
+          seedHellLevelTwo();
+          return;
+        }
+        rocks.length = 0;
+        clouds.length = 0;
+
+        for (let i = 0; i < cloudCount; i += 1) {
+          clouds.push(makeCloud(rand(0, H)));
+        }
+
+        // Starter layer (multiple choices, solid)
+        const starterY = H - 70;
+        const starterLayer = [
+          makeRock(starterY, W * 0.14, 102),
+          makeRock(starterY, W * 0.5 - 52, 104),
+          makeRock(starterY, W * 0.74 - 88, 98)
+        ];
+        for (const rock of starterLayer) {
+          rock.breakable = false;
+          rock.isPath = false;
+        }
+        starterLayer[1].isPath = true;
+        rocks.push(...starterLayer);
+        topLayerY = starterY;
+        topLayerRocks = starterLayer;
+        mainPathAnchor = starterLayer[1];
+
+        while (topLayerY > -120) {
+          addNextLayer([mainPathAnchor]);
+        }
+        ensureVisibleCoins();
+      }
+
+      function seedHellLevelOne() {
+        rocks.length = 0;
+        clouds.length = 0;
+        hellWallBar.active = false;
+        hellWallBar.sourceRockId = null;
+
+        for (let i = 0; i < cloudCount; i += 1) {
+          clouds.push(makeCloud(rand(0, H)));
+        }
+
+        // Route-order numbering (intended jump path):
+        // step 0 = start, step 1..4 = route platforms, goal above route.
+        const layout = [
+          { routeStep: 0, x: 176, y: H - 72, w: 128, trapType: null, goal: false },
+          { routeStep: 1, x: 84, y: H - 168, w: 104, trapType: 'flip_fast', goal: false },
+          { routeStep: 2, x: 232, y: H - 252, w: 96, trapType: 'wall_bar', goal: false },
+          { routeStep: 3, x: 122, y: H - 336, w: 106, trapType: 'spike', goal: false },
+          { routeStep: 4, x: 254, y: H - 418, w: 100, trapType: 'spin360', goal: false },
+          { routeStep: 5, x: 176, y: H - 510, w: 112, trapType: null, goal: true }
+        ];
+
+        for (const item of layout) {
+          const rock = makeRock(item.y, item.x, item.w);
+          rock.breakable = false;
+          rock.isPath = true;
+          rock.routeStep = item.routeStep;
+          rock.trapType = item.trapType;
+          if (item.goal) {
+            rock.hasCoin = true;
+            rock.coinType = 'gold';
+            rock.goalGold = true;
+          }
+          rocks.push(rock);
+        }
+
+        topLayerY = Math.min(...rocks.map((r) => r.y));
+        topLayerRocks = rocks.slice();
+        mainPathAnchor = rocks[rocks.length - 1];
+      }
+
+      function seedHellLevelTwo() {
+        rocks.length = 0;
+        clouds.length = 0;
+        hellWallBar.active = false;
+        hellWallBar.sourceRockId = null;
+
+        for (let i = 0; i < cloudCount; i += 1) {
+          clouds.push(makeCloud(rand(0, H)));
+        }
+
+        // Route-order numbering follows intended climb path, not screen/list order.
+        // step 0 = start, step 1..3 = trap stairs, step 5 = top gold goal.
+        const layout = [
+          { routeStep: 0, x: 56, y: H - 72, w: 118, trapType: null, goal: false },
+          { routeStep: 1, x: 126, y: H - 154, w: 112, trapType: 'spike_hidden_left_mid', goal: false },
+          { routeStep: 2, x: 198, y: H - 236, w: 108, trapType: 'spike_visible_mid', goal: false },
+          { routeStep: 3, x: 270, y: H - 318, w: 106, trapType: 'spike_visible_mid', goal: false },
+          { routeStep: 4, x: 332, y: H - 400, w: 104, trapType: null, goal: false },
+          { routeStep: 5, x: 300, y: H - 484, w: 120, trapType: null, goal: true }
+        ];
+
+        for (const item of layout) {
+          const rock = makeRock(item.y, item.x, item.w);
+          rock.breakable = false;
+          rock.isPath = true;
+          rock.routeStep = item.routeStep;
+          rock.trapType = item.trapType;
+          if (item.trapType === 'spike_visible_mid') {
+            rock.spikesActive = true;
+            rock.spikeProgress = 1;
+          }
+          if (item.goal) {
+            rock.hasCoin = true;
+            rock.coinType = 'gold';
+            rock.goalGold = true;
+          }
+          rocks.push(rock);
+        }
+
+        topLayerY = Math.min(...rocks.map((r) => r.y));
+        topLayerRocks = rocks.slice();
+        mainPathAnchor = rocks[rocks.length - 1];
+      }
+
+      function placePlayerAtLevelStart() {
+        if (!isHandcraftedHellLevel()) return;
+        const startRock = rocks.find((rock) => rock.routeStep === 0 && !rock.broken);
+        if (!startRock) return;
+
+        const centeredX = startRock.x + startRock.w / 2 - player.w / 2;
+        player.x = clamp(centeredX, startRock.x, startRock.x + startRock.w - player.w);
+        player.y = startRock.y - player.h;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = true;
+      }
+
+      function handleInput() {
+        if (keys.left && !keys.right) {
+          player.vx = -physics.moveSpeed;
+          player.facing = -1;
+        } else if (keys.right && !keys.left) {
+          player.vx = physics.moveSpeed;
+          player.facing = 1;
+        } else {
+          player.vx *= player.onGround ? physics.groundDrag : physics.airDrag;
+          if (Math.abs(player.vx) < 0.08) player.vx = 0;
+        }
+      }
+
+      function jump() {
+        if (player.onGround && !gameOver && !gameWon) {
+          player.vy = -physics.jumpPower;
+          player.onGround = false;
+        }
+      }
+
+      function updatePlayer() {
+        handleInput();
+        let landedRockId = null;
+        const prevY = player.y;
+
+        player.vy += physics.gravity;
+        if (player.vy > physics.maxFall) player.vy = physics.maxFall;
+
+        player.x += player.vx;
+        player.y += player.vy;
+
+        if (player.x < -player.w + 6) player.x = -player.w + 6;
+        if (player.x > W - 6) player.x = W - 6;
+
+        player.onGround = false;
+
+        const now = performance.now();
+        const prevBottom = prevY + player.h;
+        const currBottom = player.y + player.h;
+        let landingRock = null;
+
+        for (const rock of rocks) {
+          if (rock.broken && now >= rock.respawnAt) {
+            rock.broken = false;
+            rock.collapseAt = 0;
+          }
+
+          if (!rock.broken && rock.breakable && rock.collapseAt > 0 && now >= rock.collapseAt) {
+            rock.broken = true;
+            rock.respawnAt = now + brokenDurationMs;
+            rock.collapseAt = 0;
+          }
+
+          if (rock.broken) continue;
+          if (isHellLevelOne() && (rock.flipDisabled || rock.spinDisabled)) continue;
+          if (player.vy <= 0) continue;
+
+          const crossedTop = prevBottom <= rock.y && currBottom >= rock.y;
+          if (!crossedTop) continue;
+
+          const overlapLeft = Math.max(player.x, rock.x);
+          const overlapRight = Math.min(player.x + player.w, rock.x + rock.w);
+          const supportWidth = overlapRight - overlapLeft;
+          if (supportWidth < supportOverlapMin) continue;
+
+          if (landingRock === null || rock.y < landingRock.y) {
+            landingRock = rock;
+          }
+        }
+
+        if (landingRock) {
+          player.y = landingRock.y - player.h;
+          player.vy = 0;
+          player.onGround = true;
+          landedRockId = landingRock.id;
+          player.vx *= physics.landingGrip;
+          if (Math.abs(player.vx) < 0.05) player.vx = 0;
+
+          if (landingRock.breakable && lastLandedRockId !== landingRock.id) {
+            landingRock.collapseAt = now + breakDelayMs;
+          }
+          if (isHellLevelOne() && lastLandedRockId !== landingRock.id) {
+            if (landingRock.routeStep === 1 && landingRock.trapType === 'flip_fast' && !landingRock.flipTriggered) {
+              landingRock.flipTriggered = true;
+              landingRock.flipStartAt = now;
+              landingRock.flipProgress = 0;
+            }
+            if (landingRock.routeStep === 2 && landingRock.trapType === 'wall_bar' && !landingRock.barTriggered) {
+              landingRock.barTriggered = true;
+              hellWallBar.active = true;
+              hellWallBar.x = W + 8;
+              hellWallBar.y = landingRock.y - player.h;
+              hellWallBar.sourceRockId = landingRock.id;
+            }
+            if (landingRock.routeStep === 3 && landingRock.trapType === 'spike' && !landingRock.spikesActive) {
+              landingRock.spikesActive = true;
+              landingRock.spikeStartAt = now;
+              landingRock.spikeProgress = 0;
+            }
+            if (landingRock.routeStep === 4 && landingRock.trapType === 'spin360' && !landingRock.spinTriggered) {
+              landingRock.spinTriggered = true;
+              landingRock.spinStartAt = now;
+              landingRock.spinProgress = 0;
+            }
+          }
+          if (isHellLevelTwo() && lastLandedRockId !== landingRock.id) {
+            if (landingRock.routeStep === 1 && landingRock.trapType === 'spike_hidden_left_mid' && !landingRock.spikesActive) {
+              landingRock.spikesActive = true;
+              landingRock.spikeStartAt = now;
+              landingRock.spikeProgress = 0;
+            }
+          }
+        }
+
+        if (player.y < HALF_H) {
+          const dy = HALF_H - player.y;
+          player.y = HALF_H;
+          worldClimb += dy;
+
+          for (const rock of rocks) {
+            rock.y += dy;
+          }
+          topLayerY += dy;
+
+          for (const cloud of clouds) {
+            cloud.y += dy * 0.35;
+          }
+        }
+
+        if (player.y > H + 40) {
+          gameOver = true;
+          setStatus('Fell! Press R');
+        }
+
+        if (isHellLevelOne()) {
+          updateHellLevelOneTraps(now);
+        }
+        if (isHellLevelTwo()) {
+          updateHellLevelTwoTraps(now);
+        }
+
+        if (landedRockId !== null && landedRockId !== lastLandedRockId) {
+          registerLanding(landedRockId);
+        }
+        if (!player.onGround) {
+          lastLandedRockId = null;
+        }
+      }
+
+      function getHellSpikeHitboxes(rock) {
+        const progress = clamp(rock.spikeProgress || 0, 0, 1);
+
+        if (rock.trapType === 'spike_hidden_left_mid') {
+          // Hell L2 Block 2 (route step 1): left covered, right side safe.
+          const maxSpikeHeight = Math.min(player.h, 18);
+          const h = Math.max(1, Math.round(maxSpikeHeight * progress));
+          const y = rock.y - h;
+          return [{ x: rock.x + rock.w * 0.06, y, w: rock.w * 0.62, h }];
+        }
+
+        if (rock.trapType === 'spike_visible_mid') {
+          const maxSpikeHeight = Math.min(player.h, 16);
+          const h = Math.max(1, Math.round(maxSpikeHeight * progress));
+          const y = rock.y - h;
+          // Hell L2 Block 3 and Block 4 share the same centered visible spike layout.
+          return [{ x: rock.x + rock.w * 0.31, y, w: rock.w * 0.38, h }];
+        }
+
+        const maxSpikeHeight = 24;
+        const h = Math.max(1, Math.round(maxSpikeHeight * progress));
+        const y = rock.y - h;
+        const w = 26;
+        const x = rock.x + rock.w / 2 - w / 2;
+        return [{ x, y, w, h }];
+      }
+
+      function getHellSpikeLethalHitboxes(rock) {
+        // Slightly pad visible spike hitboxes so touching the base/edge is lethal.
+        return getHellSpikeHitboxes(rock).map((spike) => ({
+          x: spike.x - 1,
+          y: spike.y,
+          w: spike.w + 2,
+          h: spike.h + 2
+        }));
+      }
+
+      function getRockById(rockId) {
+        return rocks.find((rock) => rock.id === rockId) || null;
+      }
+
+      function updateHellLevelOneTraps(now) {
+        for (const rock of rocks) {
+          if (rock.trapType === 'flip_fast' && rock.flipTriggered && !rock.flipDisabled) {
+            rock.flipProgress = clamp((now - rock.flipStartAt) / 200, 0, 1);
+            if (rock.flipProgress >= 1) {
+              rock.flipDisabled = true;
+            }
+          }
+
+          if (rock.trapType === 'spin360' && rock.spinTriggered) {
+            rock.spinProgress = clamp((now - rock.spinStartAt) / 700, 0, 1);
+            if (rock.spinProgress >= 1) {
+              rock.spinDisabled = true;
+            }
+          }
+
+          if (rock.trapType === 'spike' && rock.spikesActive) {
+            rock.spikeProgress = clamp((now - rock.spikeStartAt) / 300, 0, 1);
+            const spikeHitboxes = getHellSpikeLethalHitboxes(rock);
+            if (rock.spikeProgress > 0.12) {
+              for (const spikeHitbox of spikeHitboxes) {
+                if (!intersectsInclusive(player, spikeHitbox)) continue;
+                gameOver = true;
+                setStatus('Hit spikes! Press R');
+                return;
+              }
+            }
+          }
+        }
+
+        if (hellWallBar.active) {
+          const sourceRock = getRockById(hellWallBar.sourceRockId);
+          if (sourceRock) {
+            hellWallBar.y = sourceRock.y - player.h;
+          }
+          hellWallBar.x -= hellWallBar.speed;
+          if (intersects(player, hellWallBar)) {
+            player.x = Math.min(player.x, hellWallBar.x - player.w - 1);
+            player.vx = Math.min(player.vx, -6.4);
+            player.vy = Math.max(player.vy, 3.8);
+            player.onGround = false;
+          }
+          if (hellWallBar.x + hellWallBar.w < -8) {
+            hellWallBar.active = false;
+            hellWallBar.sourceRockId = null;
+          }
+        }
+      }
+
+      function updateHellLevelTwoTraps(now) {
+        for (const rock of rocks) {
+          if ((rock.trapType !== 'spike_hidden_left_mid' && rock.trapType !== 'spike_visible_mid') || !rock.spikesActive) continue;
+
+          if (rock.trapType === 'spike_hidden_left_mid') {
+            rock.spikeProgress = clamp((now - rock.spikeStartAt) / 300, 0, 1);
+          } else {
+            rock.spikeProgress = 1;
+          }
+
+          if (rock.spikeProgress <= 0.12) continue;
+          const spikeHitboxes = getHellSpikeLethalHitboxes(rock);
+          for (const spikeHitbox of spikeHitboxes) {
+            if (!intersectsInclusive(player, spikeHitbox)) continue;
+            gameOver = true;
+            setStatus('Hit spikes! Press R');
+            return;
+          }
+        }
+      }
+
+      function registerLanding(rockId) {
+        lastLandedRockId = rockId;
+        if (!landedRockIds.has(rockId)) {
+          landedRockIds.add(rockId);
+          score += 1;
+        }
+      }
+
+      function refillRocks() {
+        if (isHandcraftedHellLevel()) return;
+        for (let i = rocks.length - 1; i >= 0; i -= 1) {
+          if (rocks[i].y > H + 36) rocks.splice(i, 1);
+        }
+
+        while (topLayerY > -110) {
+          addNextLayer([mainPathAnchor || topLayerRocks[0]]);
+        }
+
+        let safety = 0;
+        while (!hasReachablePathAbovePlayer() && safety < 6) {
+          addNextLayer([mainPathAnchor || topLayerRocks[0]], true);
+          safety += 1;
+        }
+      }
+
+      function hasReachablePathAbovePlayer() {
+        const threshold = player.y - 40;
+        return rocks.some((r) => !r.broken && r.isPath && r.y < threshold);
+      }
+
+      function getVisiblePlayableRocks() {
+        return rocks.filter((r) => !r.broken && r.y > 20 && r.y < H - 10);
+      }
+
+      function canSpawnHealthCoin(visibleHealthCoins) {
+        if (!isHardMode()) return false;
+        if (score < 12) return false;
+        if (hardLives >= hardMaxLives) return false;
+        if (visibleHealthCoins >= maxVisibleHealthCoins) return false;
+        if (healthCoinsSpawnedThisRun >= maxHealthCoinsPerRun) return false;
+        return Math.random() < healthCoinSpawnChance;
+      }
+
+      function assignCoinToRock(rock, visibleHealthCoins) {
+        rock.hasCoin = true;
+        if (canSpawnHealthCoin(visibleHealthCoins)) {
+          rock.coinType = 'health';
+          healthCoinsSpawnedThisRun += 1;
+          return 'health';
+        }
+        rock.coinType = 'gold';
+        return 'gold';
+      }
+
+      function ensureVisibleCoins() {
+        if (isHandcraftedHellLevel()) return;
+        const visibleRocks = getVisiblePlayableRocks();
+        const abovePlayerRocks = visibleRocks.filter((r) => !r.breakable && r.y + r.h < player.y - 6);
+        let visibleCoins = abovePlayerRocks.filter((r) => r.hasCoin).length;
+        let visibleHealthCoins = abovePlayerRocks.filter((r) => r.hasCoin && r.coinType === 'health').length;
+        const target = Math.floor(rand(minCoinsPerScreen, maxCoinsPerScreen + 1));
+
+        if (visibleCoins < minCoinsPerScreen) {
+          const pathCandidates = abovePlayerRocks.filter((r) => !r.hasCoin && r.isPath);
+          const sideCandidates = abovePlayerRocks.filter((r) => !r.hasCoin && !r.isPath);
+
+          while (visibleCoins < target && (pathCandidates.length || sideCandidates.length)) {
+            const usePath = pathCandidates.length > 0 && (sideCandidates.length === 0 || Math.random() < 0.75);
+            const pool = usePath ? pathCandidates : sideCandidates;
+            const index = Math.floor(rand(0, pool.length));
+            const coinType = assignCoinToRock(pool[index], visibleHealthCoins);
+            if (coinType === 'health') visibleHealthCoins += 1;
+            pool.splice(index, 1);
+            visibleCoins += 1;
+          }
+        }
+      }
+
+      function collectCoins() {
+        for (const rock of rocks) {
+          if (!rock.hasCoin || rock.broken) continue;
+
+          const coin = {
+            x: rock.x + rock.w / 2 - 7,
+            y: rock.y - 12,
+            w: 14,
+            h: 14
+          };
+
+          const overlap =
+            player.x < coin.x + coin.w &&
+            player.x + player.w > coin.x &&
+            player.y < coin.y + coin.h &&
+            player.y + player.h > coin.y;
+
+          if (overlap) {
+            const coinType = rock.coinType || 'gold';
+            rock.hasCoin = false;
+            rock.coinType = null;
+
+            if (coinType === 'health') {
+              if (isHardMode() && hardLives < hardMaxLives) {
+                hardLives += 1;
+                updateLivesUI();
+                setStatus('+1 life');
+              } else if (isHardMode()) {
+                setStatus('Lives full');
+              }
+            } else {
+              playerGold += 1;
+              updateGoldUI();
+              if (isHandcraftedHellLevel() && rock.goalGold && selectedHellLevel !== null) {
+                completeHellLevelObjective(selectedHellLevel);
+              }
+            }
+          }
+        }
+      }
+
+      function updateGoldUI() {
+        goldLabel.textContent = `Gold: ${playerGold}`;
+      }
+
+      function setStatus(text) {
+        if (stateLabel) stateLabel.textContent = text;
+      }
+
+      function recycleClouds() {
+        for (const cloud of clouds) {
+          cloud.y += cloud.speed;
+          if (cloud.y > H + 40) {
+            cloud.y = -40;
+            cloud.x = rand(10, W - cloud.w - 10);
+            cloud.w = rand(52, 98);
+            cloud.h = rand(20, 38);
+          }
+        }
+      }
+
+      function drawBackground() {
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, '#69b9ff');
+        sky.addColorStop(1, '#d9f2ff');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+
+        for (const c of clouds) {
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.fillRect(c.x, c.y, c.w, c.h);
+          ctx.fillRect(c.x + c.w * 0.16, c.y - c.h * 0.45, c.w * 0.34, c.h * 0.55);
+          ctx.fillRect(c.x + c.w * 0.52, c.y - c.h * 0.32, c.w * 0.28, c.h * 0.5);
+        }
+      }
+
+      function drawRock(r) {
+        if (r.broken) return;
+        if (r.trapType === 'flip_fast' && r.flipDisabled) return;
+        if (r.trapType === 'spin360' && r.spinDisabled) return;
+
+        const drawRockBody = (x, y, w, h, breakable, collapseAt) => {
+          if (breakable) {
+            ctx.fillStyle = '#8f8f8f';
+            ctx.fillRect(x, y, w, h);
+
+            ctx.fillStyle = '#b9b9b9';
+            ctx.fillRect(x + 2, y + 2, w - 4, 3);
+
+            ctx.fillStyle = '#6a6a6a';
+            for (let i = 8; i < w - 8; i += 16) {
+              ctx.fillRect(x + i, y + 6, 2, 5);
+            }
+
+            if (collapseAt > 0) {
+              ctx.fillStyle = '#d94545';
+              ctx.fillRect(x + 4, y + 2, w - 8, 2);
+            }
+          } else {
+            ctx.fillStyle = '#4f6d3d';
+            ctx.fillRect(x, y, w, h);
+
+            ctx.fillStyle = '#7ca85e';
+            ctx.fillRect(x + 1, y + 1, w - 2, 5);
+
+            ctx.fillStyle = '#314629';
+            ctx.fillRect(x + 3, y + 8, w - 6, 5);
+          }
+        };
+
+        if (r.trapType === 'flip_fast' && r.flipTriggered && !r.flipDisabled) {
+          const angle = clamp(r.flipProgress || 0, 0, 1) * (Math.PI / 2);
+          const cx = r.x + r.w / 2;
+          const cy = r.y + r.h / 2;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(angle);
+          drawRockBody(-r.w / 2, -r.h / 2, r.w, r.h, r.breakable, r.collapseAt);
+          ctx.restore();
+        } else if (r.trapType === 'spin360' && r.spinTriggered) {
+          const angle = clamp(r.spinProgress || 0, 0, 1) * (Math.PI * 2);
+          const cx = r.x + r.w / 2;
+          const cy = r.y + r.h / 2;
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(angle);
+          drawRockBody(-r.w / 2, -r.h / 2, r.w, r.h, r.breakable, r.collapseAt);
+          ctx.restore();
+        } else {
+          drawRockBody(r.x, r.y, r.w, r.h, r.breakable, r.collapseAt);
+        }
+
+        if (r.trapType === 'spike' && r.spikesActive) {
+          const spikes = getHellSpikeHitboxes(r);
+          for (const spike of spikes) {
+            const baseY = Math.round(r.y);
+            const peakY = Math.round(spike.y);
+            const leftX = Math.round(spike.x);
+            const midX = Math.round(spike.x + spike.w / 2);
+            const rightX = Math.round(spike.x + spike.w);
+            const quarterX = Math.round(spike.x + spike.w * 0.24);
+            const thirdX = Math.round(spike.x + spike.w * 0.38);
+            const twoThirdX = Math.round(spike.x + spike.w * 0.62);
+            const threeQuarterX = Math.round(spike.x + spike.w * 0.76);
+
+            ctx.fillStyle = '#a9aab3';
+            ctx.beginPath();
+            ctx.moveTo(leftX, baseY);
+            ctx.lineTo(quarterX, peakY);
+            ctx.lineTo(midX, baseY);
+            ctx.lineTo(thirdX, baseY);
+            ctx.lineTo(twoThirdX, peakY);
+            ctx.lineTo(rightX, baseY);
+            ctx.lineTo(threeQuarterX, baseY);
+            ctx.lineTo(midX, peakY - 4);
+            ctx.lineTo(leftX, baseY);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#e7e9f5';
+            ctx.fillRect(midX - 1, peakY + 2, 2, Math.max(2, baseY - peakY - 2));
+          }
+        }
+
+        if ((r.trapType === 'spike_hidden_left_mid' || r.trapType === 'spike_visible_mid') && r.spikesActive) {
+          const spikes = getHellSpikeHitboxes(r);
+          for (const spike of spikes) {
+            const baseY = Math.round(r.y);
+            const peakY = Math.round(spike.y);
+            const leftX = Math.round(spike.x);
+            const midX = Math.round(spike.x + spike.w / 2);
+            const rightX = Math.round(spike.x + spike.w);
+            const quarterX = Math.round(spike.x + spike.w * 0.24);
+            const thirdX = Math.round(spike.x + spike.w * 0.38);
+            const twoThirdX = Math.round(spike.x + spike.w * 0.62);
+            const threeQuarterX = Math.round(spike.x + spike.w * 0.76);
+
+            ctx.fillStyle = '#a9aab3';
+            ctx.beginPath();
+            ctx.moveTo(leftX, baseY);
+            ctx.lineTo(quarterX, peakY);
+            ctx.lineTo(midX, baseY);
+            ctx.lineTo(thirdX, baseY);
+            ctx.lineTo(twoThirdX, peakY);
+            ctx.lineTo(rightX, baseY);
+            ctx.lineTo(threeQuarterX, baseY);
+            ctx.lineTo(midX, peakY - 4);
+            ctx.lineTo(leftX, baseY);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#e7e9f5';
+            ctx.fillRect(midX - 1, peakY + 2, 2, Math.max(2, baseY - peakY - 2));
+          }
+        }
+      }
+
+      function drawHellWallBar() {
+        if (!isHellLevelOne() || !hellWallBar.active) return;
+        const x = Math.round(hellWallBar.x);
+        const y = Math.round(hellWallBar.y);
+        const w = Math.round(hellWallBar.w);
+        const h = Math.round(hellWallBar.h);
+        ctx.fillStyle = '#2fa75b';
+        ctx.fillRect(x, y, w, h);
+        ctx.fillStyle = '#73e397';
+        ctx.fillRect(x + 2, y + 2, w - 4, Math.max(2, h - 5));
+        ctx.fillStyle = '#1d6a3a';
+        ctx.fillRect(x, y + h - 2, w, 2);
+      }
+
+      function drawCoinOnRock(rock) {
+        if (!rock.hasCoin || rock.broken) return;
+        const x = Math.round(rock.x + rock.w / 2 - 6);
+        const y = Math.round(rock.y - 12);
+        const coinType = rock.coinType || 'gold';
+        if (coinType === 'health') {
+          ctx.fillStyle = '#2f9d43';
+          ctx.fillRect(x, y + 2, 12, 10);
+          ctx.fillStyle = '#7be08d';
+          ctx.fillRect(x + 2, y + 4, 8, 6);
+          ctx.fillStyle = '#d8ffe0';
+          ctx.fillRect(x + 5, y + 4, 2, 6);
+        } else {
+          ctx.fillStyle = '#f3b300';
+          ctx.fillRect(x, y + 2, 12, 10);
+          ctx.fillStyle = '#ffd764';
+          ctx.fillRect(x + 2, y + 4, 8, 6);
+          ctx.fillStyle = '#e89300';
+          ctx.fillRect(x + 5, y + 4, 2, 6);
+        }
+      }
+
+      function drawRabbit(renderCtx, x, y, s, p, facing) {
+        renderCtx.fillStyle = p.accent;
+        renderCtx.fillRect(x + s * 2, y + s * 0, s, s * 3);
+        renderCtx.fillRect(x + s * 4, y + s * 0, s, s * 3);
+        renderCtx.fillStyle = p.base;
+        renderCtx.fillRect(x + s * 1, y + s * 2, s * 5, s * 5);
+        renderCtx.fillRect(x + s * 1, y + s * 7, s * 2, s);
+        renderCtx.fillRect(x + s * 4, y + s * 7, s * 2, s);
+
+        renderCtx.fillStyle = p.eye;
+        const eyeOffset = facing === 1 ? 0 : -s;
+        renderCtx.fillRect(x + s * 2 + eyeOffset, y + s * 4, s, s);
+        renderCtx.fillRect(x + s * 4 + eyeOffset, y + s * 4, s, s);
+        renderCtx.fillStyle = p.detail;
+        renderCtx.fillRect(x + s * 3, y + s * 5, s, s);
+        renderCtx.fillStyle = p.blush;
+        renderCtx.fillRect(x + s * 1, y + s * 5, s, s);
+        renderCtx.fillRect(x + s * 5, y + s * 5, s, s);
+      }
+
+      function drawPlayer() {
+        const x = Math.round(player.x);
+        const y = Math.round(player.y);
+        const s = 4;
+        drawRabbit(ctx, x, y, s, rabbitPalette, player.facing);
+      }
+
+      function drawEndOverlay() {
+        if (!gameOver && !gameWon) return;
+        ctx.fillStyle = 'rgba(8, 19, 37, 0.5)';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 42px Trebuchet MS';
+        ctx.textAlign = 'center';
+        ctx.fillText(gameWon ? 'You Win!' : 'Game Over', W / 2, H / 2 - 12);
+
+        ctx.font = 'bold 20px Trebuchet MS';
+        ctx.fillText('Press R to restart', W / 2, H / 2 + 24);
+        ctx.font = 'bold 16px Trebuchet MS';
+        ctx.fillText('Press M or MENU for main menu', W / 2, H / 2 + 54);
+      }
+
+      function drawHellLevelOneIntro(now) {
+        if (!isHellLevelOne() || now >= hellLevelIntroUntil) return;
+        const duration = 1500;
+        const remaining = Math.max(0, hellLevelIntroUntil - now);
+        const alpha = clamp(remaining / duration, 0, 1);
+        ctx.fillStyle = `rgba(10, 22, 40, ${0.36 * alpha})`;
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.98 * alpha})`;
+        ctx.font = 'bold 62px Trebuchet MS';
+        ctx.textAlign = 'center';
+        ctx.fillText('GET THE GOLD', W / 2, H / 2 + 16);
+      }
+
+      function updateScore() {
+        if (isHandcraftedHellLevel()) {
+          scoreLabel.textContent = `Score: ${score}`;
+          return;
+        }
+        scoreLabel.textContent = `Score: ${score}`;
+        if (!gameWon && score >= winScoreTarget) {
+          gameWon = true;
+          if (selectedMode === 'HELL DIFFICULTY' && selectedHellLevel !== null) {
+            registerHellLevelClear(selectedHellLevel);
+          }
+          setStatus('You Win! Press R or M');
+        }
+      }
+
+      function resetHardModeState() {
+        bombs.length = 0;
+        hardBombInvulnerableUntil = 0;
+        hardRainRangeIndex = -1;
+        nextBombSpawnAt = 0;
+        hardLastBombLane = -1;
+        hardRecentBombLanes.length = 0;
+        hardWaveCounter = 0;
+        hardLives = isHardMode() ? hardMaxLives : 0;
+        hardCountdownActive = isHardMode();
+        hardCountdownValue = hardCountdownActive ? hardCountdownStart : 0;
+        hardCountdownNextAt = hardCountdownActive ? performance.now() + 1000 : 0;
+      }
+
+      function updateLivesUI() {
+        const showLives = activeScreen === screen.playing && isHardMode();
+        lifeLabel.classList.toggle('hidden', !showLives);
+        if (!showLives) return;
+        const hearts = '❤'.repeat(Math.max(0, hardLives));
+        const empty = '♡'.repeat(Math.max(0, hardMaxLives - hardLives));
+        lifeLabel.innerHTML = `Lives: <span class="heart-icons">${hearts}${empty}</span>`;
+      }
+
+      function updateHardCountdown(now) {
+        if (!hardCountdownActive) return;
+        if (now < hardCountdownNextAt) return;
+        hardCountdownValue -= 1;
+        hardCountdownNextAt = now + 1000;
+        if (hardCountdownValue <= 0) {
+          hardCountdownActive = false;
+          setStatus('');
+        }
+      }
+
+      function drawHardCountdownOverlay() {
+        if (!hardCountdownActive || hardCountdownValue <= 0) return;
+        ctx.fillStyle = 'rgba(8, 19, 37, 0.35)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 88px Trebuchet MS';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(hardCountdownValue), W / 2, H / 2 + 24);
+      }
+
+      function getActiveHardRainRangeIndex() {
+        for (let i = 0; i < hardRainRanges.length; i += 1) {
+          const range = hardRainRanges[i];
+          if (score >= range.start && score < range.end) return i;
+        }
+        return -1;
+      }
+
+      function getHardBombLanes() {
+        const size = Math.round(player.w);
+        const minCenterX = 10 + size / 2;
+        const maxCenterX = W - 10 - size / 2;
+        const laneWidth = (maxCenterX - minCenterX) / (hardBombLaneCount - 1);
+        const centers = [];
+        for (let i = 0; i < hardBombLaneCount; i += 1) {
+          centers.push(minCenterX + laneWidth * i);
+        }
+        return { size, centers, laneWidth };
+      }
+
+      function chooseHardBombLane(centers, blockedLanes) {
+        const playerCenter = player.x + player.w / 2;
+        const safeDistance = worldClimb < 70 ? 96 : 74;
+        const recentWindow = hardRecentBombLanes.slice(-3);
+        const candidates = centers.map((center, index) => ({
+          index,
+          distance: Math.abs(center - playerCenter)
+        }));
+        const canUse = (c) => !blockedLanes.has(c.index);
+
+        let pool = candidates.filter((c) => canUse(c) && c.distance >= safeDistance && c.index !== hardLastBombLane && !recentWindow.includes(c.index));
+        if (!pool.length) pool = candidates.filter((c) => canUse(c) && c.distance >= safeDistance && c.index !== hardLastBombLane);
+        if (!pool.length) pool = candidates.filter((c) => canUse(c) && c.distance >= safeDistance);
+        if (!pool.length) pool = candidates.filter(canUse);
+        if (!pool.length) return Math.floor(Math.random() * centers.length);
+
+        let totalWeight = 0;
+        const weighted = pool.map((candidate) => {
+          let weight = 0.8 + candidate.distance / 210 + Math.random() * 0.5;
+          if (candidate.index === hardLastBombLane) weight *= 0.18;
+          if (recentWindow.includes(candidate.index)) weight *= 0.42;
+          weight = Math.max(0.05, weight);
+          totalWeight += weight;
+          return { ...candidate, weight };
+        });
+
+        let pick = Math.random() * totalWeight;
+        for (const item of weighted) {
+          pick -= item.weight;
+          if (pick <= 0) return item.index;
+        }
+        return weighted[weighted.length - 1].index;
+      }
+
+      function registerHardBombLane(laneIndex) {
+        hardLastBombLane = laneIndex;
+        hardRecentBombLanes.push(laneIndex);
+        if (hardRecentBombLanes.length > hardBombLaneHistorySize) {
+          hardRecentBombLanes.shift();
+        }
+      }
+
+      function spawnHardBombWave(now) {
+        const { size, centers, laneWidth } = getHardBombLanes();
+        hardWaveCounter += 1;
+
+        let bombsThisWave = Math.random() < 0.3 ? 1 : 2;
+        if (score >= 80 && Math.random() < 0.35) bombsThisWave = 3;
+        if (score >= 60 && hardWaveCounter % 5 === 0) bombsThisWave = Math.max(bombsThisWave, 3);
+        if (bombs.length > 12) bombsThisWave = 1;
+
+        const blockedLanes = new Set();
+        for (let i = 0; i < bombsThisWave; i += 1) {
+          const laneIndex = chooseHardBombLane(centers, blockedLanes);
+          const centerX = centers[laneIndex];
+          const jitter = rand(-laneWidth * 0.26, laneWidth * 0.26);
+          const x = clamp(centerX - size / 2 + jitter, 10, W - size - 10);
+
+          bombs.push({
+            x,
+            y: -size - 8,
+            w: size,
+            h: size,
+            vy: rand(5.1, 7.8),
+            spawnedAt: now,
+            lane: laneIndex
+          });
+
+          registerHardBombLane(laneIndex);
+
+          blockedLanes.add(laneIndex);
+          if (laneIndex > 0) blockedLanes.add(laneIndex - 1);
+          if (laneIndex < hardBombLaneCount - 1) blockedLanes.add(laneIndex + 1);
+        }
+      }
+
+      function intersects(a, b) {
+        return (
+          a.x < b.x + b.w &&
+          a.x + a.w > b.x &&
+          a.y < b.y + b.h &&
+          a.y + a.h > b.y
+        );
+      }
+
+      function intersectsInclusive(a, b) {
+        return (
+          a.x <= b.x + b.w &&
+          a.x + a.w >= b.x &&
+          a.y <= b.y + b.h &&
+          a.y + a.h >= b.y
+        );
+      }
+
+      function updateHardBombRain(now) {
+        if (!isHardMode()) return;
+
+        const activeRange = getActiveHardRainRangeIndex();
+        if (activeRange !== hardRainRangeIndex) {
+          hardRainRangeIndex = activeRange;
+          if (hardRainRangeIndex !== -1) {
+            nextBombSpawnAt = now + rand(120, 210);
+          }
+        }
+
+        if (hardRainRangeIndex !== -1 && now >= nextBombSpawnAt) {
+          spawnHardBombWave(now);
+          nextBombSpawnAt = now + rand(180, 290);
+        }
+
+        for (let i = bombs.length - 1; i >= 0; i -= 1) {
+          const bomb = bombs[i];
+          bomb.y += bomb.vy;
+          if (bomb.y > H + 40) {
+            bombs.splice(i, 1);
+            continue;
+          }
+          if (now < hardBombInvulnerableUntil) continue;
+          if (!intersects(player, bomb)) continue;
+
+          bombs.splice(i, 1);
+          hardLives = Math.max(0, hardLives - 1);
+          hardBombInvulnerableUntil = now + 760;
+          updateLivesUI();
+
+          if (hardLives <= 0) {
+            gameOver = true;
+            setStatus('Out of lives! Press R');
+          }
+        }
+      }
+
+      function drawBomb(bomb) {
+        const x = Math.round(bomb.x);
+        const y = Math.round(bomb.y);
+        const w = Math.round(bomb.w);
+        const h = Math.round(bomb.h);
+        ctx.fillStyle = '#2a2f3a';
+        ctx.fillRect(x + 2, y + 4, w - 4, h - 6);
+        ctx.fillStyle = '#10141d';
+        ctx.fillRect(x + 4, y + 6, w - 8, h - 10);
+        ctx.fillStyle = '#d83642';
+        ctx.fillRect(x + Math.floor(w / 2) - 2, y + 1, 4, 5);
+        ctx.fillStyle = '#ffd17f';
+        ctx.fillRect(x + Math.floor(w / 2) - 1, y - 2, 2, 3);
+      }
+
+      function isHardRainActive() {
+        return isHardMode() && hardRainRangeIndex !== -1;
+      }
+
+      function drawHardRainTint() {
+        if (!isHardRainActive()) return;
+        ctx.fillStyle = 'rgba(195, 40, 54, 0.14)';
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      function resetGame() {
+        player.x = W / 2 - 14;
+        player.y = H - 120;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = false;
+        gameOver = false;
+        gameWon = false;
+        worldClimb = 0;
+        score = 0;
+        healthCoinsSpawnedThisRun = 0;
+        nextRockId = 1;
+        lastLandedRockId = null;
+        landedRockIds.clear();
+        resetHardModeState();
+        setStatus('');
+        seedWorld();
+        placePlayerAtLevelStart();
+        hellLevelIntroUntil = isHellLevelOne() ? performance.now() + 1500 : 0;
+        updateLivesUI();
+      }
+
+      function updateModeUI() {
+        if (selectedHellLevel !== null) {
+          modeLabel.textContent = `Mode: HELL L${selectedHellLevel}`;
+          return;
+        }
+        modeLabel.textContent = `Mode: ${selectedMode || '-'}`;
+      }
+
+      function updateMenuVisibility() {
+        const showMenu = activeScreen === screen.menu;
+        mainMenu.classList.toggle('show', showMenu && activeMenuPage === menuPage.main);
+        hellMenu.classList.toggle('show', showMenu && activeMenuPage === menuPage.hell);
+      }
+
+      function updateMenuButtonVisibility() {
+        menuBtn.classList.toggle('hidden', activeScreen !== screen.playing);
+      }
+
+      function enterMainMenu() {
+        activeScreen = screen.menu;
+        activeMenuPage = menuPage.main;
+        keys.left = false;
+        keys.right = false;
+        hardCountdownActive = false;
+        bombs.length = 0;
+        setStatus('Select Mode');
+        updateMenuVisibility();
+        updateMenuButtonVisibility();
+        updateModeUI();
+        updateLivesUI();
+      }
+
+      function startMode(modeName) {
+        selectedMode = modeName;
+        selectedHellLevel = null;
+        resetGame();
+        activeScreen = screen.playing;
+        updateModeUI();
+        updateMenuVisibility();
+        updateMenuButtonVisibility();
+        updateLivesUI();
+        if (isHardMode() && hardCountdownActive) {
+          setStatus('Get Ready');
+        }
+      }
+
+      function openHellMenu() {
+        activeScreen = screen.menu;
+        activeMenuPage = menuPage.hell;
+        updateHellLevelButtons();
+        setStatus('Select Hell Level');
+        updateMenuVisibility();
+        updateMenuButtonVisibility();
+      }
+
+      function openMainMenuPage() {
+        activeScreen = screen.menu;
+        activeMenuPage = menuPage.main;
+        setStatus('Select Mode');
+        updateMenuVisibility();
+        updateMenuButtonVisibility();
+      }
+
+      function getHellLevelDefinition(levelId) {
+        return hellLevelDefinitions.find((level) => level.id === levelId) || null;
+      }
+
+      function startHellLevel(levelId) {
+        const definition = getHellLevelDefinition(levelId);
+        if (!definition) return;
+        if (!isHellLevelUnlocked(definition.id)) return;
+        selectedMode = 'HELL DIFFICULTY';
+        selectedHellLevel = definition.id;
+        resetGame();
+        activeScreen = screen.playing;
+        updateModeUI();
+        updateMenuVisibility();
+        updateMenuButtonVisibility();
+        if (definition.id === 1 || definition.id === 2) setStatus('Objective: Get the Gold');
+        else setStatus(`HELL LEVEL ${definition.id} (Temp Normal)`);
+      }
+
+      function tick() {
+        const now = performance.now();
+        if (activeScreen === screen.playing && !gameOver && !gameWon) {
+          if (isHardMode() && hardCountdownActive) {
+            updateHardCountdown(now);
+          } else if (isHellLevelOne() && now < hellLevelIntroUntil) {
+            // Brief dramatic intro before Hell Level 1 gameplay begins.
+          } else {
+            updatePlayer();
+            refillRocks();
+            ensureVisibleCoins();
+            collectCoins();
+            if (isHardMode()) updateHardBombRain(now);
+            updateScore();
+          }
+        }
+        recycleClouds();
+        updateMenuButtonVisibility();
+        updateLivesUI();
+
+        drawBackground();
+        if (activeScreen === screen.playing) drawHardRainTint();
+        if (activeScreen === screen.playing) {
+          for (const rock of rocks) {
+            drawRock(rock);
+            drawCoinOnRock(rock);
+          }
+          drawHellWallBar();
+          if (isHardMode()) {
+            for (const bomb of bombs) drawBomb(bomb);
+          }
+          drawPlayer();
+          drawHellLevelOneIntro(now);
+          if (isHardMode()) drawHardCountdownOverlay();
+          drawEndOverlay();
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+
+        if (activeScreen === screen.playing) {
+          if (k === 'arrowleft' || k === 'a') keys.left = true;
+          if (k === 'arrowright' || k === 'd') keys.right = true;
+
+          if (k === ' ' || e.code === 'Space') {
+            e.preventDefault();
+            jump();
+          }
+        }
+
+        if (k === 'r' && activeScreen === screen.playing && (gameOver || gameWon)) {
+          resetGame();
+        }
+
+        if (k === 'm' && activeScreen === screen.playing) {
+          enterMainMenu();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        if (activeScreen !== screen.playing) return;
+        const k = e.key.toLowerCase();
+        if (k === 'arrowleft' || k === 'a') keys.left = false;
+        if (k === 'arrowright' || k === 'd') keys.right = false;
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const modeName = button.dataset.mode || 'NORMAL';
+          if (modeName === 'HELL DIFFICULTY') {
+            openHellMenu();
+            return;
+          }
+          startMode(modeName);
+        });
+      });
+
+      hellBackBtn.addEventListener('click', openMainMenuPage);
+
+      hellLevelButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const levelId = Number(button.dataset.hellLevel);
+          if (!Number.isInteger(levelId)) return;
+          startHellLevel(levelId);
+        });
+      });
+
+      menuBtn.addEventListener('click', () => {
+        if (activeScreen === screen.playing) enterMainMenu();
+      });
+
+      loadHellProgress();
+      updateHellLevelButtons();
+      seedWorld();
+      updateGoldUI();
+      updateModeUI();
+      updateMenuVisibility();
+      updateMenuButtonVisibility();
+      tick();
+    })();
+  </script>
+</body>
+</html>
