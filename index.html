@@ -55,6 +55,72 @@
       background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
     }
 
+    .play-stage {
+      position: relative;
+      width: 100%;
+    }
+
+    .mobile-controls {
+      margin-top: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: auto;
+    }
+
+    .mobile-controls-left,
+    .mobile-controls-right {
+      display: flex;
+      gap: 10px;
+      touch-action: none;
+    }
+
+    .mobile-btn {
+      border: 2px solid #cde8ff;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 34%, #ffffff 0 31%, #f4fbff 70%, #e8f4ff 100%);
+      color: #1a4f7f;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      min-width: 72px;
+      min-height: 52px;
+      padding: 0 16px;
+      box-shadow:
+        0 6px 0 #a5d2f3,
+        0 10px 18px rgba(10, 64, 102, 0.2);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+    }
+
+    .mobile-btn:active,
+    .mobile-btn.is-active {
+      transform: translateY(2px);
+      box-shadow:
+        0 3px 0 #a5d2f3,
+        0 7px 12px rgba(10, 64, 102, 0.24);
+    }
+
+    @media (pointer: fine) {
+      .mobile-controls {
+        display: none;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .mobile-btn {
+        min-width: 68px;
+        min-height: 50px;
+        font-size: 0.78rem;
+        padding: 0 14px;
+      }
+    }
+
     canvas {
       width: 100%;
       height: auto;
@@ -300,49 +366,60 @@
 <body>
   <main class="game-shell">
     <h1 class="title">SKY_JUMPER</h1>
-    <div class="canvas-wrap">
-      <div class="hud">
-        <div class="chip" id="scoreLabel">Score: 0</div>
-        <div class="chip" id="goldLabel">Gold: 0</div>
-        <div class="chip" id="stateLabel">Select Mode</div>
-      </div>
-      <div class="canvas-controls">
-        <div class="chip" id="modeLabel">Mode: -</div>
-        <button class="chip-btn hidden" id="menuBtn" type="button">MENU</button>
-      </div>
-      <div class="chip life-chip hidden" id="lifeLabel">Lives: <span class="heart-icons">❤❤❤</span></div>
-      <div class="menu-overlay show" id="mainMenu">
-        <div class="menu-panel">
-          <h2 class="menu-title">SKY_JUMPER</h2>
-          <p class="menu-subtitle">Choose a mode to start climbing</p>
-          <div class="mode-list">
-            <button class="cloud-btn" type="button" data-mode="NORMAL">NORMAL</button>
-            <button class="cloud-btn" type="button" data-mode="HARD">HARD</button>
-            <button class="cloud-btn" type="button" data-mode="HELL DIFFICULTY">HELL DIFFICULTY</button>
+    <div class="play-stage">
+      <div class="canvas-wrap">
+        <div class="hud">
+          <div class="chip" id="scoreLabel">Score: 0</div>
+          <div class="chip" id="goldLabel">Gold: 0</div>
+          <div class="chip" id="stateLabel">Select Mode</div>
+        </div>
+        <div class="canvas-controls">
+          <div class="chip" id="modeLabel">Mode: -</div>
+          <button class="chip-btn hidden" id="menuBtn" type="button">MENU</button>
+        </div>
+        <div class="chip life-chip hidden" id="lifeLabel">Lives: <span class="heart-icons">❤❤❤</span></div>
+        <div class="menu-overlay show" id="mainMenu">
+          <div class="menu-panel">
+            <h2 class="menu-title">SKY_JUMPER</h2>
+            <p class="menu-subtitle">Choose a mode to start climbing</p>
+            <div class="mode-list">
+              <button class="cloud-btn" type="button" data-mode="NORMAL">NORMAL</button>
+              <button class="cloud-btn" type="button" data-mode="HARD">HARD</button>
+              <button class="cloud-btn" type="button" data-mode="HELL DIFFICULTY">HELL DIFFICULTY</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="menu-overlay" id="hellMenu">
-        <div class="menu-panel">
-          <div class="hell-header">
-            <button class="menu-back" id="hellBackBtn" type="button" aria-label="Back to main menu">←</button>
-            <h2 class="hell-title">HELL LEVELS</h2>
-          </div>
-          <div class="hell-level-path">
-            <button class="cloud-btn hell-level-btn step-1" type="button" data-hell-level="1">LEVEL 1</button>
-            <button class="cloud-btn hell-level-btn step-2" type="button" data-hell-level="2">LEVEL 2</button>
-            <button class="cloud-btn hell-level-btn step-3" type="button" data-hell-level="3">LEVEL 3</button>
-            <button class="cloud-btn hell-level-btn step-4" type="button" data-hell-level="4">LEVEL 4</button>
-            <button class="cloud-btn hell-level-btn step-5" type="button" data-hell-level="5">LEVEL 5</button>
-            <button class="cloud-btn hell-level-btn step-6" type="button" data-hell-level="6">LEVEL 6</button>
-            <button class="cloud-btn hell-level-btn step-7" type="button" data-hell-level="7">LEVEL 7</button>
-            <button class="cloud-btn hell-level-btn step-8" type="button" data-hell-level="8">LEVEL 8</button>
-            <button class="cloud-btn hell-level-btn step-9" type="button" data-hell-level="9">LEVEL 9</button>
-            <button class="cloud-btn hell-level-btn step-10" type="button" data-hell-level="10">LEVEL 10</button>
+        <div class="menu-overlay" id="hellMenu">
+          <div class="menu-panel">
+            <div class="hell-header">
+              <button class="menu-back" id="hellBackBtn" type="button" aria-label="Back to main menu">←</button>
+              <h2 class="hell-title">HELL LEVELS</h2>
+            </div>
+            <div class="hell-level-path">
+              <button class="cloud-btn hell-level-btn step-1" type="button" data-hell-level="1">LEVEL 1</button>
+              <button class="cloud-btn hell-level-btn step-2" type="button" data-hell-level="2">LEVEL 2</button>
+              <button class="cloud-btn hell-level-btn step-3" type="button" data-hell-level="3">LEVEL 3</button>
+              <button class="cloud-btn hell-level-btn step-4" type="button" data-hell-level="4">LEVEL 4</button>
+              <button class="cloud-btn hell-level-btn step-5" type="button" data-hell-level="5">LEVEL 5</button>
+              <button class="cloud-btn hell-level-btn step-6" type="button" data-hell-level="6">LEVEL 6</button>
+              <button class="cloud-btn hell-level-btn step-7" type="button" data-hell-level="7">LEVEL 7</button>
+              <button class="cloud-btn hell-level-btn step-8" type="button" data-hell-level="8">LEVEL 8</button>
+              <button class="cloud-btn hell-level-btn step-9" type="button" data-hell-level="9">LEVEL 9</button>
+              <button class="cloud-btn hell-level-btn step-10" type="button" data-hell-level="10">LEVEL 10</button>
+            </div>
           </div>
         </div>
+        <canvas id="game" width="480" height="720" aria-label="Sky Jumper game canvas"></canvas>
       </div>
-      <canvas id="game" width="480" height="720" aria-label="Sky Jumper game canvas"></canvas>
+      <div class="mobile-controls" aria-label="Mobile controls">
+        <div class="mobile-controls-left">
+          <button class="mobile-btn" id="touchLeftBtn" type="button" aria-label="Move left">LEFT</button>
+          <button class="mobile-btn" id="touchRightBtn" type="button" aria-label="Move right">RIGHT</button>
+        </div>
+        <div class="mobile-controls-right">
+          <button class="mobile-btn" id="touchJumpBtn" type="button" aria-label="Jump">JUMP</button>
+        </div>
+      </div>
     </div>
     <p class="help">Move: A/D or Arrow Keys | Jump: Space | Restart: R | Return Menu: M</p>
   </main>
@@ -362,6 +439,9 @@
       const modeLabel = document.getElementById('modeLabel');
       const menuBtn = document.getElementById('menuBtn');
       const lifeLabel = document.getElementById('lifeLabel');
+      const touchLeftBtn = document.getElementById('touchLeftBtn');
+      const touchRightBtn = document.getElementById('touchRightBtn');
+      const touchJumpBtn = document.getElementById('touchJumpBtn');
 
       const W = canvas.width;
       const H = canvas.height;
@@ -370,6 +450,12 @@
       const keys = {
         left: false,
         right: false
+      };
+      const moveInput = {
+        keyboardLeft: false,
+        keyboardRight: false,
+        touchLeft: false,
+        touchRight: false
       };
 
       const physics = {
@@ -498,6 +584,19 @@
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
+      }
+
+      function syncMoveKeys() {
+        keys.left = moveInput.keyboardLeft || moveInput.touchLeft;
+        keys.right = moveInput.keyboardRight || moveInput.touchRight;
+      }
+
+      function resetMoveInputs() {
+        moveInput.keyboardLeft = false;
+        moveInput.keyboardRight = false;
+        moveInput.touchLeft = false;
+        moveInput.touchRight = false;
+        syncMoveKeys();
       }
 
       function loadHellProgress() {
@@ -1810,8 +1909,7 @@
       function enterMainMenu() {
         activeScreen = screen.menu;
         activeMenuPage = menuPage.main;
-        keys.left = false;
-        keys.right = false;
+        resetMoveInputs();
         hardCountdownActive = false;
         bombs.length = 0;
         setStatus('Select Mode');
@@ -1915,8 +2013,14 @@
         const k = e.key.toLowerCase();
 
         if (activeScreen === screen.playing) {
-          if (k === 'arrowleft' || k === 'a') keys.left = true;
-          if (k === 'arrowright' || k === 'd') keys.right = true;
+          if (k === 'arrowleft' || k === 'a') {
+            moveInput.keyboardLeft = true;
+            syncMoveKeys();
+          }
+          if (k === 'arrowright' || k === 'd') {
+            moveInput.keyboardRight = true;
+            syncMoveKeys();
+          }
 
           if (k === ' ' || e.code === 'Space') {
             e.preventDefault();
@@ -1934,11 +2038,66 @@
       });
 
       window.addEventListener('keyup', (e) => {
-        if (activeScreen !== screen.playing) return;
         const k = e.key.toLowerCase();
-        if (k === 'arrowleft' || k === 'a') keys.left = false;
-        if (k === 'arrowright' || k === 'd') keys.right = false;
+        if (k === 'arrowleft' || k === 'a') {
+          moveInput.keyboardLeft = false;
+          syncMoveKeys();
+        }
+        if (k === 'arrowright' || k === 'd') {
+          moveInput.keyboardRight = false;
+          syncMoveKeys();
+        }
       });
+
+      window.addEventListener('blur', resetMoveInputs);
+
+      function bindTouchHoldButton(button, setPressed) {
+        if (!button) return;
+
+        const onDown = (e) => {
+          e.preventDefault();
+          if (activeScreen !== screen.playing) return;
+          button.classList.add('is-active');
+          setPressed(true);
+        };
+        const onUp = (e) => {
+          e.preventDefault();
+          button.classList.remove('is-active');
+          setPressed(false);
+        };
+
+        button.addEventListener('pointerdown', onDown, { passive: false });
+        button.addEventListener('pointerup', onUp, { passive: false });
+        button.addEventListener('pointercancel', onUp, { passive: false });
+        button.addEventListener('pointerleave', onUp, { passive: false });
+      }
+
+      bindTouchHoldButton(touchLeftBtn, (pressed) => {
+        moveInput.touchLeft = pressed;
+        syncMoveKeys();
+      });
+      bindTouchHoldButton(touchRightBtn, (pressed) => {
+        moveInput.touchRight = pressed;
+        syncMoveKeys();
+      });
+
+      if (touchJumpBtn) {
+        const triggerJump = (e) => {
+          e.preventDefault();
+          if (activeScreen !== screen.playing) return;
+          touchJumpBtn.classList.add('is-active');
+          jump();
+        };
+        const releaseJump = (e) => {
+          e.preventDefault();
+          touchJumpBtn.classList.remove('is-active');
+        };
+
+        touchJumpBtn.addEventListener('pointerdown', triggerJump, { passive: false });
+        touchJumpBtn.addEventListener('pointerup', releaseJump, { passive: false });
+        touchJumpBtn.addEventListener('pointercancel', releaseJump, { passive: false });
+        touchJumpBtn.addEventListener('pointerleave', releaseJump, { passive: false });
+      }
 
       modeButtons.forEach((button) => {
         button.addEventListener('click', () => {
