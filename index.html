@@ -28,6 +28,7 @@
         radial-gradient(circle at 72% 23%, #ffffff4d 0 5%, transparent 6%),
         linear-gradient(180deg, #8dd0ff 0%, #cceeff 45%, #e9f8ff 100%);
       color: var(--text);
+      overscroll-behavior: none;
     }
 
     .game-shell {
@@ -67,13 +68,63 @@
       justify-content: space-between;
       align-items: center;
       pointer-events: auto;
+      touch-action: none;
     }
 
     .mobile-controls-left,
     .mobile-controls-right {
       display: flex;
       gap: 10px;
+      align-items: center;
       touch-action: none;
+    }
+
+    .mobile-controls-left {
+      justify-content: flex-start;
+      flex: 1 1 auto;
+    }
+
+    .mobile-controls-right {
+      justify-content: flex-end;
+      flex: 1 1 auto;
+    }
+
+    .mobile-joystick {
+      width: 116px;
+      height: 116px;
+      border: 2px solid #cde8ff;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 32% 30%, #ffffff 0 24%, #edf8ff 64%, #e2f1ff 100%);
+      box-shadow:
+        inset 0 3px 10px rgba(14, 64, 103, 0.18),
+        0 8px 16px rgba(10, 64, 102, 0.14);
+      display: grid;
+      place-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none;
+    }
+
+    .mobile-joystick-stick {
+      width: 54px;
+      height: 54px;
+      border: 2px solid #bcdfff;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 34% 30%, #ffffff 0 30%, #eff9ff 68%, #dff0ff 100%);
+      box-shadow:
+        0 5px 0 #a5d2f3,
+        0 8px 14px rgba(10, 64, 102, 0.16);
+      transform: translateX(0);
+      transition: transform 55ms linear;
+    }
+
+    .mobile-joystick.is-active .mobile-joystick-stick {
+      box-shadow:
+        0 3px 0 #a5d2f3,
+        0 6px 12px rgba(10, 64, 102, 0.2);
     }
 
     .mobile-btn {
@@ -106,6 +157,29 @@
         0 7px 12px rgba(10, 64, 102, 0.24);
     }
 
+    .end-actions {
+      position: absolute;
+      left: 50%;
+      bottom: 92px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 9;
+      pointer-events: auto;
+    }
+
+    .end-action-btn {
+      min-width: 118px;
+      min-height: 48px;
+      font-size: 0.8rem;
+      padding: 0 14px;
+    }
+
+    .end-action-btn:disabled {
+      opacity: 0.62;
+      cursor: not-allowed;
+    }
+
     @media (pointer: fine) {
       .mobile-controls {
         display: none;
@@ -113,6 +187,16 @@
     }
 
     @media (max-width: 680px) {
+      .mobile-joystick {
+        width: 104px;
+        height: 104px;
+      }
+
+      .mobile-joystick-stick {
+        width: 50px;
+        height: 50px;
+      }
+
       .mobile-btn {
         min-width: 68px;
         min-height: 50px;
@@ -410,11 +494,16 @@
           </div>
         </div>
         <canvas id="game" width="480" height="720" aria-label="Sky Jumper game canvas"></canvas>
+        <div class="end-actions hidden" id="endActions" aria-label="Run actions">
+          <button class="mobile-btn end-action-btn" id="restartRunBtn" type="button" aria-label="Restart run">↻ RESTART</button>
+          <button class="mobile-btn end-action-btn hidden" id="nextHellLevelBtn" type="button" aria-label="Next hell level">NEXT LEVEL</button>
+        </div>
       </div>
       <div class="mobile-controls" aria-label="Mobile controls">
         <div class="mobile-controls-left">
-          <button class="mobile-btn" id="touchLeftBtn" type="button" aria-label="Move left">LEFT</button>
-          <button class="mobile-btn" id="touchRightBtn" type="button" aria-label="Move right">RIGHT</button>
+          <div class="mobile-joystick" id="touchJoystick" aria-label="Move joystick">
+            <div class="mobile-joystick-stick" id="touchJoystickStick"></div>
+          </div>
         </div>
         <div class="mobile-controls-right">
           <button class="mobile-btn" id="touchJumpBtn" type="button" aria-label="Jump">JUMP</button>
@@ -439,9 +528,12 @@
       const modeLabel = document.getElementById('modeLabel');
       const menuBtn = document.getElementById('menuBtn');
       const lifeLabel = document.getElementById('lifeLabel');
-      const touchLeftBtn = document.getElementById('touchLeftBtn');
-      const touchRightBtn = document.getElementById('touchRightBtn');
+      const touchJoystick = document.getElementById('touchJoystick');
+      const touchJoystickStick = document.getElementById('touchJoystickStick');
       const touchJumpBtn = document.getElementById('touchJumpBtn');
+      const endActions = document.getElementById('endActions');
+      const restartRunBtn = document.getElementById('restartRunBtn');
+      const nextHellLevelBtn = document.getElementById('nextHellLevelBtn');
 
       const W = canvas.width;
       const H = canvas.height;
@@ -456,6 +548,12 @@
         keyboardRight: false,
         touchLeft: false,
         touchRight: false
+      };
+      const joystickState = {
+        pointerId: null,
+        axisX: 0,
+        deadZone: 0.18,
+        maxTravel: 26
       };
 
       const physics = {
@@ -592,10 +690,22 @@
       }
 
       function resetMoveInputs() {
+        const activeJoystickPointerId = joystickState.pointerId;
         moveInput.keyboardLeft = false;
         moveInput.keyboardRight = false;
         moveInput.touchLeft = false;
         moveInput.touchRight = false;
+        if (
+          touchJoystick &&
+          activeJoystickPointerId !== null &&
+          touchJoystick.hasPointerCapture(activeJoystickPointerId)
+        ) {
+          touchJoystick.releasePointerCapture(activeJoystickPointerId);
+        }
+        joystickState.pointerId = null;
+        joystickState.axisX = 0;
+        if (touchJoystick) touchJoystick.classList.remove('is-active');
+        if (touchJoystickStick) touchJoystickStick.style.transform = 'translateX(0px)';
         syncMoveKeys();
       }
 
@@ -1612,7 +1722,7 @@
         ctx.fillText(gameWon ? 'You Win!' : 'Game Over', W / 2, H / 2 - 12);
 
         ctx.font = 'bold 20px Trebuchet MS';
-        ctx.fillText('Press R to restart', W / 2, H / 2 + 24);
+        ctx.fillText('Press R or tap ↻ to restart', W / 2, H / 2 + 24);
         ctx.font = 'bold 16px Trebuchet MS';
         ctx.fillText('Press M or MENU for main menu', W / 2, H / 2 + 54);
       }
@@ -1867,6 +1977,7 @@
       }
 
       function resetGame() {
+        resetMoveInputs();
         player.x = W / 2 - 14;
         player.y = H - 120;
         player.vx = 0;
@@ -1906,6 +2017,26 @@
         menuBtn.classList.toggle('hidden', activeScreen !== screen.playing);
       }
 
+      function canGoToNextHellLevel() {
+        return Number.isInteger(selectedHellLevel) && selectedHellLevel < hellLevelDefinitions.length;
+      }
+
+      function updateEndActionButtons() {
+        const runEnded = activeScreen === screen.playing && (gameOver || gameWon);
+        endActions.classList.toggle('hidden', !runEnded);
+        endActions.style.display = runEnded ? 'flex' : 'none';
+        if (!runEnded) return;
+
+        const showNextLevel = gameWon && isHellMode();
+        nextHellLevelBtn.classList.toggle('hidden', !showNextLevel);
+        nextHellLevelBtn.style.display = showNextLevel ? 'inline-flex' : 'none';
+        if (showNextLevel) {
+          const hasNextLevel = canGoToNextHellLevel();
+          nextHellLevelBtn.disabled = !hasNextLevel;
+          nextHellLevelBtn.textContent = hasNextLevel ? 'NEXT LEVEL' : 'MAX LEVEL';
+        }
+      }
+
       function enterMainMenu() {
         activeScreen = screen.menu;
         activeMenuPage = menuPage.main;
@@ -1917,6 +2048,7 @@
         updateMenuButtonVisibility();
         updateModeUI();
         updateLivesUI();
+        updateEndActionButtons();
       }
 
       function startMode(modeName) {
@@ -1928,6 +2060,7 @@
         updateMenuVisibility();
         updateMenuButtonVisibility();
         updateLivesUI();
+        updateEndActionButtons();
         if (isHardMode() && hardCountdownActive) {
           setStatus('Get Ready');
         }
@@ -1940,6 +2073,7 @@
         setStatus('Select Hell Level');
         updateMenuVisibility();
         updateMenuButtonVisibility();
+        updateEndActionButtons();
       }
 
       function openMainMenuPage() {
@@ -1948,6 +2082,7 @@
         setStatus('Select Mode');
         updateMenuVisibility();
         updateMenuButtonVisibility();
+        updateEndActionButtons();
       }
 
       function getHellLevelDefinition(levelId) {
@@ -1965,6 +2100,7 @@
         updateModeUI();
         updateMenuVisibility();
         updateMenuButtonVisibility();
+        updateEndActionButtons();
         if (definition.id === 1 || definition.id === 2) setStatus('Objective: Get the Gold');
         else setStatus(`HELL LEVEL ${definition.id} (Temp Normal)`);
       }
@@ -1988,6 +2124,7 @@
         recycleClouds();
         updateMenuButtonVisibility();
         updateLivesUI();
+        updateEndActionButtons();
 
         drawBackground();
         if (activeScreen === screen.playing) drawHardRainTint();
@@ -2051,52 +2188,83 @@
 
       window.addEventListener('blur', resetMoveInputs);
 
-      function bindTouchHoldButton(button, setPressed) {
-        if (!button) return;
-
-        const onDown = (e) => {
-          e.preventDefault();
-          if (activeScreen !== screen.playing) return;
-          button.classList.add('is-active');
-          setPressed(true);
-        };
-        const onUp = (e) => {
-          e.preventDefault();
-          button.classList.remove('is-active');
-          setPressed(false);
-        };
-
-        button.addEventListener('pointerdown', onDown, { passive: false });
-        button.addEventListener('pointerup', onUp, { passive: false });
-        button.addEventListener('pointercancel', onUp, { passive: false });
-        button.addEventListener('pointerleave', onUp, { passive: false });
+      function updateJoystickInput(axisX) {
+        joystickState.axisX = clamp(axisX, -1, 1);
+        const activeLeft = joystickState.axisX < -joystickState.deadZone;
+        const activeRight = joystickState.axisX > joystickState.deadZone;
+        moveInput.touchLeft = activeLeft;
+        moveInput.touchRight = activeRight;
+        if (touchJoystickStick) {
+          const offsetX = Math.round(joystickState.axisX * joystickState.maxTravel);
+          touchJoystickStick.style.transform = `translateX(${offsetX}px)`;
+        }
+        syncMoveKeys();
       }
 
-      bindTouchHoldButton(touchLeftBtn, (pressed) => {
-        moveInput.touchLeft = pressed;
-        syncMoveKeys();
-      });
-      bindTouchHoldButton(touchRightBtn, (pressed) => {
-        moveInput.touchRight = pressed;
-        syncMoveKeys();
-      });
+      if (touchJoystick) {
+        const onJoystickDown = (e) => {
+          e.preventDefault();
+          if (activeScreen !== screen.playing) return;
+          if (joystickState.pointerId !== null) return;
+          joystickState.pointerId = e.pointerId;
+          touchJoystick.classList.add('is-active');
+          touchJoystick.setPointerCapture(e.pointerId);
+          const rect = touchJoystick.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const axisX = (e.clientX - centerX) / joystickState.maxTravel;
+          updateJoystickInput(axisX);
+        };
+
+        const onJoystickMove = (e) => {
+          if (e.pointerId !== joystickState.pointerId) return;
+          e.preventDefault();
+          const rect = touchJoystick.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const axisX = (e.clientX - centerX) / joystickState.maxTravel;
+          updateJoystickInput(axisX);
+        };
+
+        const onJoystickUp = (e) => {
+          if (e.pointerId !== joystickState.pointerId) return;
+          e.preventDefault();
+          if (touchJoystick.hasPointerCapture(e.pointerId)) {
+            touchJoystick.releasePointerCapture(e.pointerId);
+          }
+          joystickState.pointerId = null;
+          touchJoystick.classList.remove('is-active');
+          updateJoystickInput(0);
+        };
+
+        touchJoystick.addEventListener('pointerdown', onJoystickDown, { passive: false });
+        touchJoystick.addEventListener('pointermove', onJoystickMove, { passive: false });
+        touchJoystick.addEventListener('pointerup', onJoystickUp, { passive: false });
+        touchJoystick.addEventListener('pointercancel', onJoystickUp, { passive: false });
+        touchJoystick.addEventListener('lostpointercapture', onJoystickUp, { passive: false });
+      }
 
       if (touchJumpBtn) {
+        const jumpPointers = new Set();
         const triggerJump = (e) => {
           e.preventDefault();
           if (activeScreen !== screen.playing) return;
+          jumpPointers.add(e.pointerId);
+          touchJumpBtn.setPointerCapture(e.pointerId);
           touchJumpBtn.classList.add('is-active');
           jump();
         };
         const releaseJump = (e) => {
           e.preventDefault();
-          touchJumpBtn.classList.remove('is-active');
+          jumpPointers.delete(e.pointerId);
+          if (touchJumpBtn.hasPointerCapture(e.pointerId)) {
+            touchJumpBtn.releasePointerCapture(e.pointerId);
+          }
+          if (jumpPointers.size === 0) touchJumpBtn.classList.remove('is-active');
         };
 
         touchJumpBtn.addEventListener('pointerdown', triggerJump, { passive: false });
         touchJumpBtn.addEventListener('pointerup', releaseJump, { passive: false });
         touchJumpBtn.addEventListener('pointercancel', releaseJump, { passive: false });
-        touchJumpBtn.addEventListener('pointerleave', releaseJump, { passive: false });
+        touchJumpBtn.addEventListener('lostpointercapture', releaseJump, { passive: false });
       }
 
       modeButtons.forEach((button) => {
@@ -2124,6 +2292,16 @@
         if (activeScreen === screen.playing) enterMainMenu();
       });
 
+      restartRunBtn.addEventListener('click', () => {
+        if (activeScreen !== screen.playing || (!gameOver && !gameWon)) return;
+        resetGame();
+      });
+
+      nextHellLevelBtn.addEventListener('click', () => {
+        if (activeScreen !== screen.playing || !gameWon || !isHellMode() || !canGoToNextHellLevel()) return;
+        startHellLevel(selectedHellLevel + 1);
+      });
+
       loadHellProgress();
       updateHellLevelButtons();
       seedWorld();
@@ -2131,6 +2309,7 @@
       updateModeUI();
       updateMenuVisibility();
       updateMenuButtonVisibility();
+      updateEndActionButtons();
       tick();
     })();
   </script>
