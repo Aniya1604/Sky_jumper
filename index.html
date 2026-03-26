@@ -169,6 +169,11 @@
     }
 
     .end-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1;
       min-width: 118px;
       min-height: 48px;
       font-size: 0.8rem;
@@ -745,8 +750,12 @@
         return isHellMode() && selectedHellLevel === 2;
       }
 
+      function isHellLevelThree() {
+        return isHellMode() && selectedHellLevel === 3;
+      }
+
       function isHandcraftedHellLevel() {
-        return isHellLevelOne() || isHellLevelTwo();
+        return isHellLevelOne() || isHellLevelTwo() || isHellLevelThree();
       }
 
       function updateHellLevelButtons() {
@@ -860,7 +869,12 @@
           spinTriggered: false,
           spinStartAt: 0,
           spinProgress: 0,
-          spinDisabled: false
+          spinDisabled: false,
+          patrolActive: false,
+          patrolMinX: 0,
+          patrolMaxX: 0,
+          patrolSpeed: 0,
+          patrolDir: 1
         };
       }
 
@@ -986,6 +1000,10 @@
           seedHellLevelTwo();
           return;
         }
+        if (isHellLevelThree()) {
+          seedHellLevelThree();
+          return;
+        }
         rocks.length = 0;
         clouds.length = 0;
 
@@ -1098,6 +1116,103 @@
         topLayerY = Math.min(...rocks.map((r) => r.y));
         topLayerRocks = rocks.slice();
         mainPathAnchor = rocks[rocks.length - 1];
+      }
+
+      function seedHellLevelThree() {
+        rocks.length = 0;
+        clouds.length = 0;
+        hellWallBar.active = false;
+        hellWallBar.sourceRockId = null;
+
+        for (let i = 0; i < cloudCount; i += 1) {
+          clouds.push(makeCloud(rand(0, H)));
+        }
+
+        // Route-order numbering follows expected landing path after start:
+        // step 1 left, step 2 mid, step 3 right, step 4 mid, step 5 left, step 6 mid, step 7 goal.
+        const layout = [
+          { routeStep: 0, x: 176, y: H - 72, w: 124, trapType: null, goal: false },
+          { routeStep: 1, x: 96, y: H - 154, w: 108, trapType: 'shift_left_once', goal: false },
+          { routeStep: 2, x: 186, y: H - 234, w: 110, trapType: null, goal: false },
+          { routeStep: 3, x: 300, y: H - 314, w: 108, trapType: 'shift_right_once', goal: false },
+          { routeStep: 4, x: 194, y: H - 394, w: 106, trapType: null, goal: false },
+          { routeStep: 5, x: 92, y: H - 474, w: 108, trapType: 'shift_left_once', goal: false },
+          { routeStep: 6, x: 190, y: H - 554, w: 112, trapType: 'oscillate_lr', goal: false },
+          { routeStep: 7, x: 200, y: H - 634, w: 116, trapType: null, goal: true }
+        ];
+
+        for (const item of layout) {
+          const rock = makeRock(item.y, item.x, item.w);
+          rock.breakable = false;
+          rock.isPath = true;
+          rock.routeStep = item.routeStep;
+          rock.trapType = item.trapType;
+          rock.shiftTriggered = false;
+          if (item.routeStep === 6 && item.trapType === 'oscillate_lr') {
+            rock.patrolActive = true;
+            rock.patrolMinX = 14;
+            rock.patrolMaxX = W - rock.w - 14;
+            rock.patrolSpeed = 1.2;
+            rock.patrolDir = -1;
+          }
+          if (item.goal) {
+            rock.hasCoin = true;
+            rock.coinType = 'gold';
+            rock.goalGold = true;
+          }
+          rocks.push(rock);
+        }
+
+        topLayerY = Math.min(...rocks.map((r) => r.y));
+        topLayerRocks = rocks.slice();
+        mainPathAnchor = rocks[rocks.length - 1];
+      }
+
+      function triggerHellLevelThreeShift(landingRock) {
+        if (!isHellLevelThree()) return;
+        if (landingRock.routeStep !== 1 && landingRock.routeStep !== 3 && landingRock.routeStep !== 5) return;
+        if (landingRock.shiftTriggered) return;
+
+        const shiftAmount = player.w * 2;
+        let dx = 0;
+        if (landingRock.routeStep === 1 || landingRock.routeStep === 5) dx = -shiftAmount;
+        if (landingRock.routeStep === 3) dx = shiftAmount;
+        if (dx === 0) return;
+
+        const minX = 12;
+        const maxX = W - landingRock.w - 12;
+        landingRock.x = clamp(landingRock.x + dx, minX, maxX);
+        landingRock.shiftTriggered = true;
+      }
+
+      function updateHellLevelThreeMovingPlatform() {
+        if (!isHellLevelThree()) return;
+        const movingRock = rocks.find((rock) => rock.routeStep === 6 && rock.patrolActive && !rock.broken);
+        if (!movingRock) return;
+
+        const previousX = movingRock.x;
+        movingRock.x += movingRock.patrolSpeed * movingRock.patrolDir;
+
+        if (movingRock.x <= movingRock.patrolMinX) {
+          movingRock.x = movingRock.patrolMinX;
+          movingRock.patrolDir = 1;
+        } else if (movingRock.x >= movingRock.patrolMaxX) {
+          movingRock.x = movingRock.patrolMaxX;
+          movingRock.patrolDir = -1;
+        }
+
+        const dx = movingRock.x - previousX;
+        if (dx === 0 || !player.onGround) return;
+
+        const playerBottom = player.y + player.h;
+        const onTop = Math.abs(playerBottom - movingRock.y) < 0.75;
+        const onPreviousSpan = player.x + player.w > previousX && player.x < previousX + movingRock.w;
+        const onCurrentSpan = player.x + player.w > movingRock.x && player.x < movingRock.x + movingRock.w;
+        if (!onTop || (!onPreviousSpan && !onCurrentSpan)) return;
+
+        player.x += dx;
+        if (player.x < -player.w + 6) player.x = -player.w + 6;
+        if (player.x > W - 6) player.x = W - 6;
       }
 
       function placePlayerAtLevelStart() {
@@ -1225,6 +1340,9 @@
               landingRock.spikeProgress = 0;
             }
           }
+          if (isHellLevelThree() && lastLandedRockId !== landingRock.id) {
+            triggerHellLevelThreeShift(landingRock);
+          }
         }
 
         if (player.y < HALF_H) {
@@ -1252,6 +1370,9 @@
         }
         if (isHellLevelTwo()) {
           updateHellLevelTwoTraps(now);
+        }
+        if (isHellLevelThree()) {
+          updateHellLevelThreeMovingPlatform();
         }
 
         if (landedRockId !== null && landedRockId !== lastLandedRockId) {
